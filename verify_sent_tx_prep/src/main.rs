@@ -8,6 +8,8 @@ use alloy::{
 use hex;
 use alloy_rlp::{encode};
 use alloy_trie::{HashBuilder, Nibbles};
+use std::process::Command;
+use serde_json::Value;
 
 const RPC_URL: &str = "https://mainnet.infura.io/v3/ba2572c3cedd43deaa43fd9e00261c33";
 const DEFAULT_TX_HASH: &str = "0x0aac8b01cbcfcec9f551effbb2fd65a6378ef2193e487de97814a84a3267216e";
@@ -42,25 +44,22 @@ fn get_rlp_encodings(consensus_tx: &alloy::consensus::TxEnvelope) -> (Vec<u8>, V
     (network_rlp, eip2718_bytes)
 }
 
-async fn get_trie_proof<P: Provider>(provider: &P, block_number: u64, tx_index: u64) -> Result<(), Box<dyn std::error::Error>> {
-    // Get the block that included the tx
-    let block = provider.get_block_by_number(BlockNumberOrTag::Number(block_number)).await?.unwrap();
+async fn get_proof_nodes_from_js(block_number: u64, tx_hash: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let output = Command::new("node")
+        .arg("proof_nodes/index.js")
+        .arg("proof")
+        .arg(block_number.to_string())
+        .arg(tx_hash)
+        .output()?;
+
+    if !output.status.success() {
+        return Err(format!("Node.js script failed: {}", String::from_utf8_lossy(&output.stderr)).into());
+    }
+
+    let json_output = String::from_utf8_lossy(&output.stdout);
+    let proof_data: Value = serde_json::from_str(&json_output)?;
     
-    println!("\nGenerating Transaction Trie Proof:");
-    println!("Block Number: {}", block_number);
-    println!("Transaction Index: {}", tx_index);
-    println!("Target Nibbles: {:?}", index_to_nibbles(tx_index));
-    
-    // For now, let's show how the trie would be built
-    println!("Total transactions in block: {}", block.transactions.len());
-    
-    // Show some sample proof nodes structure
-    println!("\nProof Nodes Structure (conceptual):");
-    println!("proof_nodes[0]: Root branch node RLP");
-    println!("proof_nodes[1]: Intermediate branch/extension node RLP");
-    println!("proof_nodes[2]: Leaf node containing transaction RLP");
-    
-    Ok(())
+    Ok(proof_data)
 }
 
 #[tokio::main]
@@ -125,9 +124,14 @@ async fn main() {
                     println!("Transaction Index: {}", receipt.transaction_index.unwrap_or_default());
                 }
                 
-                // Generate the trie proof
-                if let Err(e) = get_trie_proof(&provider, block_number, tx_index).await {
-                    println!("Error generating trie proof: {}", e);
+                // Generate the trie proof using Node.js script
+                println!("\nGenerating proof nodes using Node.js script...");
+                match get_proof_nodes_from_js(block_number, &format!("0x{}", hex::encode(tx_hash))).await {
+                    Ok(proof_data) => {
+                        println!("\nProof Nodes from Node.js:");
+                        println!("{}", serde_json::to_string_pretty(&proof_data).unwrap());
+                    }
+                    Err(e) => println!("Error getting proof nodes from Node.js: {}", e),
                 }
             }
             

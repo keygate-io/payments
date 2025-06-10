@@ -1,0 +1,11 @@
+[package]
+name = "verify_sent_tx_prep"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy = { version = "1.0.1", features = ["essentials"] }
+alloy-rlp = "0.3.12"
+alloy-trie = "0.8.1"
+hex = "0.4"
+tokio = { version = "1.45.1", features = ["full"] }

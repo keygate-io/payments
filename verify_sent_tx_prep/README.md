@@ -13,8 +13,8 @@ Private inputs
 ---
 Public inputs
 * block_tx_root ✅
-* expected_to
-* expected_value
+* expected_to ✅
+* expected_value ✅
 
 To feed a zero knowledge circuit that verifies that the prover succesfully executed a transaction on-chain with an `expected_to` and an `expected_value`.
 

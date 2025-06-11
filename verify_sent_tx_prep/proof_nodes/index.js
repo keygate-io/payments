@@ -43,29 +43,29 @@ function prepareTxForRLP(tx) {
  */
 async function getProofNodes(blockNumber, targetTxHash, rpcUrl = RPC_URL) {
   try {
-    console.log(
+    console.error(
       `Fetching proof nodes for tx ${targetTxHash} in block ${blockNumber}`
     );
-    console.log(`Using RPC URL: ${rpcUrl}`);
+    console.error(`Using RPC URL: ${rpcUrl}`);
 
     // Initialize provider
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
 
     // Fetch block with full transactions
-    console.log("Fetching block with transactions...");
+    console.error("Fetching block with transactions...");
     const block = await provider.getBlockWithTransactions(blockNumber);
 
     if (!block) {
       throw new Error(`Block ${blockNumber} not found`);
     }
 
-    console.log(`Block found with ${block.transactions.length} transactions`);
+    console.error(`Block found with ${block.transactions.length} transactions`);
 
     // Create new trie
     const trie = new Trie();
 
     // Build the transaction trie locally
-    console.log("Building transaction trie...");
+    console.error("Building transaction trie...");
     for (let i = 0; i < block.transactions.length; i++) {
       const tx = block.transactions[i];
 
@@ -82,7 +82,7 @@ async function getProofNodes(blockNumber, targetTxHash, rpcUrl = RPC_URL) {
       await trie.put(Buffer.from(key), Buffer.from(rlpEncodedTx));
     }
 
-    console.log("Transaction trie built successfully");
+    console.error("Transaction trie built successfully");
 
     // Find the index of the target transaction
     const txIndex = block.transactions.findIndex(
@@ -95,7 +95,7 @@ async function getProofNodes(blockNumber, targetTxHash, rpcUrl = RPC_URL) {
       );
     }
 
-    console.log(`Target transaction found at index ${txIndex}`);
+    console.error(`Target transaction found at index ${txIndex}`);
 
     // Create proof for the transaction
     const key = RLP.encode(txIndex);
@@ -153,31 +153,27 @@ async function verifyTransactionProof(proofNodes, txIndex, blockTxRoot) {
   }
 }
 
-function printUsage() {
-  console.log("Usage: node index.js <command> [options]");
-  console.log("");
-  console.log("Commands:");
-  console.log(
-    "  proof <block_number> <tx_hash>     Generate proof nodes for a transaction"
-  );
-  console.log(
-    "  verify <tx_index> <block_tx_root> <proof_node1> [proof_node2] ...    Verify proof nodes"
-  );
-  console.log(
-    "  proof-and-verify <block_number> <tx_hash>    Generate proof and immediately verify it"
-  );
-  console.log("");
-  console.log("Examples:");
-  console.log("  node index.js proof 19000000 0x1234...");
-  console.log("  node index.js verify 5 0xabcd... 0x1234... 0x5678...");
-  console.log("  node index.js proof-and-verify 19000000 0x1234...");
-}
-
 async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    printUsage();
+    console.error("Usage: node index.js <command> [options]");
+    console.error("");
+    console.error("Commands:");
+    console.error(
+      "  proof <block_number> <tx_hash>     Generate proof nodes for a transaction"
+    );
+    console.error(
+      "  verify <tx_index> <block_tx_root> <proof_node1> [proof_node2] ...    Verify proof nodes"
+    );
+    console.error(
+      "  proof-and-verify <block_number> <tx_hash>    Generate proof and immediately verify it"
+    );
+    console.error("");
+    console.error("Examples:");
+    console.error("  node index.js proof 19000000 0x1234...");
+    console.error("  node index.js verify 5 0xabcd... 0x1234... 0x5678...");
+    console.error("  node index.js proof-and-verify 19000000 0x1234...");
     process.exit(1);
   }
 
@@ -190,7 +186,6 @@ async function main() {
           console.error(
             "Error: proof command requires block number and transaction hash"
           );
-          printUsage();
           process.exit(1);
         }
 
@@ -203,8 +198,6 @@ async function main() {
         }
 
         const result = await getProofNodes(blockNumber, txHash);
-
-        // Output JSON result to stdout
         console.log(JSON.stringify(result, null, 2));
 
         if (!result.success) {
@@ -218,7 +211,6 @@ async function main() {
           console.error(
             "Error: verify command requires tx_index, block_tx_root, and at least one proof node"
           );
-          printUsage();
           process.exit(1);
         }
 
@@ -237,8 +229,6 @@ async function main() {
           blockTxRoot
         );
 
-        console.log("isValid", isValid);
-
         const result = {
           success: true,
           isValid,
@@ -256,7 +246,6 @@ async function main() {
           console.error(
             "Error: proof-and-verify command requires block number and transaction hash"
           );
-          printUsage();
           process.exit(1);
         }
 
@@ -292,7 +281,6 @@ async function main() {
 
       default:
         console.error(`Error: Unknown command '${command}'`);
-        printUsage();
         process.exit(1);
     }
   } catch (error) {

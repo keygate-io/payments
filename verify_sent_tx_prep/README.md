@@ -5,14 +5,14 @@ Private inputs
 ---
 * Gets the RLP bytes of the tx ✅
 * Gets the proof path ✅
-* Gets the proof nodes
+* Gets the proof nodes ✅
   * Get the block that included the tx
-  * Build the TRIE locally
+  * Build the TRIE locally 
   * Get the index of the transaction
-  * Create the TRIE proof
+  * Create the TRIE proof (nodes that lead to the particular transaction being proven)
 ---
 Public inputs
-* block_tx_root
+* block_tx_root ✅
 * expected_to
 * expected_value
 

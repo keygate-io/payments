@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::str::FromStr;
 use std::process::Command;
 use std::env;
+use std::fs;
 use alloy::eips::BlockNumberOrTag;
 use alloy::{
     primitives::{B256, keccak256, Address}, 
@@ -64,6 +65,35 @@ async fn get_proof_nodes(block_number: u64, tx_hash: &str) -> Result<Value, Box<
     let result: Value = serde_json::from_str(&stdout)?;
     
     Ok(result)
+}
+
+fn write_rlp_to_file(eip2718_bytes: &[u8], filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // Pad to 256 bytes (TX_RLP_MAX)
+    let mut padded_bytes = vec![0u8; 256];
+    let copy_len = std::cmp::min(eip2718_bytes.len(), 256);
+    padded_bytes[..copy_len].copy_from_slice(&eip2718_bytes[..copy_len]);
+    
+    // Format as array for Noir
+    let formatted = format!("[{}]", 
+        padded_bytes.iter()
+            .map(|b| format!("{}", b))
+            .collect::<Vec<String>>()
+            .join(", ")
+    );
+    
+    fs::write(filename, formatted)?;
+    println!("RLP encoding written to {}", filename);
+    println!("Copy this into your Prover.toml: tx_rlp = {}", 
+        padded_bytes.iter()
+            .map(|b| format!("{}", b))
+            .collect::<Vec<String>>()
+            .join(", ")
+            .chars()
+            .take(100)
+            .collect::<String>() + "..."
+    );
+    
+    Ok(())
 }
 
 async fn process_transaction(tx_hash_input: &str, expected_to: &str, expected_value: &str) -> Value {
@@ -158,6 +188,11 @@ async fn process_transaction(tx_hash_input: &str, expected_to: &str, expected_va
                 "network_rlp": format!("0x{}", hex::encode(&network_rlp)),
                 "eip2718_bytes": format!("0x{}", hex::encode(&eip2718_bytes))
             });
+            
+            // Write RLP to file
+            if let Err(e) = write_rlp_to_file(&eip2718_bytes, "tx_rlp_bytes.txt") {
+                eprintln!("Warning: Failed to write RLP to file: {}", e);
+            }
         }
         Err(e) => {
             result["rlp_encodings"] = json!({
@@ -173,18 +208,27 @@ async fn process_transaction(tx_hash_input: &str, expected_to: &str, expected_va
 async fn main() {
     let args: Vec<String> = env::args().collect();
     
-    if args.len() < 4 {
+    if args.len() < 5 {
         let error_result = json!({
             "success": false,
-            "error": "Usage: keygate <transaction_hash> <expected_to> <expected_value>"
+            "error": "Usage: keygate prepare <transaction_hash> <expected_to> <expected_value>"
         });
         println!("{}", serde_json::to_string_pretty(&error_result).unwrap());
         std::process::exit(1);
     }
     
-    let tx_hash = &args[1];
-    let expected_to = &args[2];
-    let expected_value = &args[3];
+    if args[1] != "prepare" {
+        let error_result = json!({
+            "success": false,
+            "error": "Usage: keygate prepare <transaction_hash> <expected_to> <expected_value>"
+        });
+        println!("{}", serde_json::to_string_pretty(&error_result).unwrap());
+        std::process::exit(1);
+    }
+    
+    let tx_hash = &args[2];
+    let expected_to = &args[3];
+    let expected_value = &args[4];
     
     let result = process_transaction(tx_hash, expected_to, expected_value).await;
     println!("{}", serde_json::to_string_pretty(&result).unwrap());

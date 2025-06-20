@@ -72,8 +72,16 @@ async function getProofNodes(blockNumber, targetTxHash, rpcUrl = RPC_URL) {
       // Prepare transaction data for RLP encoding
       const txData = prepareTxForRLP(tx);
 
+      console.error("Using this transaction format for RLP encoding", txData);
+
       // RLP encode the transaction
       const rlpEncodedTx = RLP.encode(txData);
+      const rlpBytes = Buffer.from(rlpEncodedTx);
+
+      console.error(
+        `RLP hash of transaction ${tx.hash}: `,
+        "0x" + rlpBytes.toString("hex")
+      );
 
       // Use transaction index as key (RLP encoded)
       const key = RLP.encode(i);
@@ -153,153 +161,75 @@ async function verifyTransactionProof(proofNodes, txIndex, blockTxRoot) {
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length === 0) {
-    console.error("Usage: node index.js <command> [options]");
-    console.error("");
-    console.error("Commands:");
-    console.error(
-      "  proof <block_number> <tx_hash>     Generate proof nodes for a transaction"
-    );
-    console.error(
-      "  verify <tx_index> <block_tx_root> <proof_node1> [proof_node2] ...    Verify proof nodes"
-    );
-    console.error(
-      "  proof-and-verify <block_number> <tx_hash>    Generate proof and immediately verify it"
-    );
-    console.error("");
-    console.error("Examples:");
-    console.error("  node index.js proof 19000000 0x1234...");
-    console.error("  node index.js verify 5 0xabcd... 0x1234... 0x5678...");
-    console.error("  node index.js proof-and-verify 19000000 0x1234...");
-    process.exit(1);
-  }
-
-  const command = args[0];
-
+/**
+ * Get RLP encoding data for a specific transaction
+ * @param {string} txHash - The transaction hash to get RLP data for
+ * @param {string} rpcUrl - Optional RPC URL (defaults to environment variable)
+ * @returns {Object} Object containing RLP hash and bytes array
+ */
+async function getRLPData(txHash, rpcUrl = RPC_URL) {
   try {
-    switch (command) {
-      case "proof": {
-        if (args.length < 3) {
-          console.error(
-            "Error: proof command requires block number and transaction hash"
-          );
-          process.exit(1);
-        }
+    console.error(`Fetching RLP data for transaction ${txHash}`);
+    console.error(`Using RPC URL: ${rpcUrl}`);
 
-        const blockNumber = parseInt(args[1]);
-        const txHash = args[2];
+    // Initialize provider
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
 
-        if (isNaN(blockNumber)) {
-          console.error("Error: Block number must be a valid integer");
-          process.exit(1);
-        }
+    // Fetch transaction
+    const tx = await provider.getTransaction(txHash);
 
-        const result = await getProofNodes(blockNumber, txHash);
-        console.log(JSON.stringify(result, null, 2));
-
-        if (!result.success) {
-          process.exit(1);
-        }
-        break;
-      }
-
-      case "verify": {
-        if (args.length < 4) {
-          console.error(
-            "Error: verify command requires tx_index, block_tx_root, and at least one proof node"
-          );
-          process.exit(1);
-        }
-
-        const txIndex = parseInt(args[1]);
-        const blockTxRoot = args[2];
-        const proofNodes = args.slice(3);
-
-        if (isNaN(txIndex)) {
-          console.error("Error: Transaction index must be a valid integer");
-          process.exit(1);
-        }
-
-        const isValid = await verifyTransactionProof(
-          proofNodes,
-          txIndex,
-          blockTxRoot
-        );
-
-        const result = {
-          success: true,
-          isValid,
-          txIndex,
-          blockTxRoot,
-          proofNodesCount: proofNodes.length,
-        };
-
-        console.log(JSON.stringify(result, null, 2));
-        break;
-      }
-
-      case "proof-and-verify": {
-        if (args.length < 3) {
-          console.error(
-            "Error: proof-and-verify command requires block number and transaction hash"
-          );
-          process.exit(1);
-        }
-
-        const blockNumber = parseInt(args[1]);
-        const txHash = args[2];
-
-        if (isNaN(blockNumber)) {
-          console.error("Error: Block number must be a valid integer");
-          process.exit(1);
-        }
-
-        const result = await getProofNodes(blockNumber, txHash);
-
-        if (!result.success) {
-          console.error("Error: Unable to generate proof");
-          process.exit(1);
-        }
-
-        const isValid = await verifyTransactionProof(
-          result.proofNodes,
-          result.txIndex,
-          result.blockTxRoot
-        );
-
-        const resultWithVerification = {
-          ...result,
-          isValid,
-        };
-
-        console.log(JSON.stringify(resultWithVerification, null, 2));
-        break;
-      }
-
-      default:
-        console.error(`Error: Unknown command '${command}'`);
-        process.exit(1);
+    if (!tx) {
+      throw new Error(`Transaction ${txHash} not found`);
     }
+
+    console.error("Transaction found, preparing RLP encoding...");
+
+    // Prepare transaction data for RLP encoding
+    const txData = prepareTxForRLP(tx);
+
+    console.error("Using this transaction format for RLP encoding", txData);
+
+    // RLP encode the transaction
+    const rlpEncodedTx = RLP.encode(txData);
+    const rlpBytes = Buffer.from(rlpEncodedTx);
+
+    // Calculate keccak256 hash of RLP bytes
+    const rlpHash = ethers.utils.keccak256(rlpBytes);
+
+    const result = {
+      success: true,
+      txHash: txHash,
+      rlpHash: rlpHash,
+      rlpBytes: "0x" + rlpBytes.toString("hex"),
+      rlpBytesArray: Array.from(rlpBytes),
+      rlpLength: rlpBytes.length,
+    };
+
+    return result;
   } catch (error) {
-    const errorResult = {
+    return {
       success: false,
       error: error.message,
+      txHash: txHash,
     };
-    console.log(JSON.stringify(errorResult, null, 2));
-    process.exit(1);
   }
+}
+
+async function main() {
+  const txHash =
+    "0x0aac8b01cbcfcec9f551effbb2fd65a6378ef2193e487de97814a84a3267216e";
+  const result = await getRLPData(txHash);
+  console.log("Transaction RLP Result:", JSON.stringify(result, null, 2));
 }
 
 // Export functions for module usage
 module.exports = {
   getProofNodes,
   verifyTransactionProof,
+  getRLPData,
 };
 
 // Run CLI if this file is executed directly
 if (require.main === module) {
-  main();
+  main().catch(console.error);
 }

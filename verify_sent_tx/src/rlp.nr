@@ -2,19 +2,16 @@ use crate::constants;
 use std::convert::AsPrimitive;
 
 pub struct TxEip1559 {
-    chain_id: Field,
-    nonce: Field,
-    max_priority_fee: Field,
-    max_fee: Field,
-    gas_limit: Field,
-    to: Field,
-    value: Field,
-    data_hash: Field, // keccak256(data)
-    access_list_hash: Field, // keccak256(access_list)
-    y_parity: Field,
-    r: Field,
-    s: Field,
-    hash: Field,
+    pub chain_id: Field,
+    pub nonce: Field,
+    pub max_priority_fee: Field,
+    pub max_fee: Field,
+    pub gas_limit: Field,
+    pub to: Field,
+    pub value: Field,
+    pub y_parity: Field,
+    pub r: Field,
+    pub s: Field,
 }
 
 // TODO: Optimize constants::TX_RLP_MAX size
@@ -245,11 +242,8 @@ pub fn decode_to_eip1559_transaction(raw: [u8; constants::TX_RLP_MAX]) -> TxEip1
         gas_limit: gas_limit,
         to: to_address,
         value: value,
-        data_hash: data_length, // Using as placeholder
-        access_list_hash: access_list, // Using as placeholder
         y_parity: y_parity,
         r: r_sig,
         s: s_sig,
-        hash: 0, // Will need to compute separately
     }
 }

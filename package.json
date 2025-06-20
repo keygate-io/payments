@@ -1,0 +1,13 @@
+{
+  "name": "zk-event-pay",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@aztec/bb.js": "latest",
+    "@noir-lang/noir_js": "latest",
+    "@ethereumjs/trie": "latest",
+    "rlp": "latest",
+    "ethers": "latest",
+    "buffer": "latest"
+  }
+}

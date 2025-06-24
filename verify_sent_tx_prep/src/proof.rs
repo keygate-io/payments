@@ -39,21 +39,12 @@ pub async fn get_proof_nodes(block_number: u64, tx_hash: &str) -> Result<Value, 
         })
         .collect();
 
-    println!("Transaction count: {}", transactions.len());
-
     // Sort by nibbles (keys)
     transactions.sort_by(|a, b| a.0.cmp(&b.0));
 
     // Now add them in sorted order
     for (nibbles, tx) in transactions {
         let mut tx_rlp = vec![];
-
-        if nibbles == target_index_nibbles {
-            println!("nibbles for target tx: {:?}", nibbles);
-        } else {
-            println!("nibbles: {:?}", nibbles);
-        }
-        
         // Try each transaction type in order
         if let Some(tx_eip1559) = tx.inner.as_eip1559() {
             tx_rlp.push(0x02); // EIP-1559 type flag
@@ -78,7 +69,6 @@ pub async fn get_proof_nodes(block_number: u64, tx_hash: &str) -> Result<Value, 
     }
 
     let proof_nodes = hb.take_proof_nodes();
-    println!("proof_nodes: {:?}", proof_nodes);
     let proof_hex: Vec<String> = proof_nodes.iter()
         .map(|(nibbles, bytes)| format!("0x{}", hex::encode(bytes.as_ref())))
         .collect();

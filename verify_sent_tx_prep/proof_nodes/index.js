@@ -220,6 +220,10 @@ async function main() {
     "0x0aac8b01cbcfcec9f551effbb2fd65a6378ef2193e487de97814a84a3267216e";
   const result = await getRLPData(txHash);
   console.log("Transaction RLP Result:", JSON.stringify(result, null, 2));
+
+  // Get the proof nodes for the transaction
+  const proofNodes = await getProofNodes(22670282, txHash);
+  console.log("Proof Nodes:", JSON.stringify(proofNodes, null, 2));
 }
 
 // Export functions for module usage

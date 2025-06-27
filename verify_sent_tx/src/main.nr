@@ -16,9 +16,6 @@ fn main(
 ) {
     let tx = rlp::decode_to_eip1559_transaction(tx_rlp);
 
-    std::println("RLP bytes are: ");
-    std::println(tx_rlp);
-
     // Assert that the transaction is sent to expected_to
     assert(tx.to == expected_to);
 
@@ -26,7 +23,5 @@ fn main(
     assert(tx.value == expected_value);
 
     // Print transaction details
-    std::println("Transaction details");
-    std::println(tx);
     assert(true);
 }

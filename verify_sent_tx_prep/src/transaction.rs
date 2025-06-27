@@ -1,16 +1,16 @@
 use std::fs;
-use alloy_rlp::encode;
+use alloy::rlp::encode;
 use hex;
 use serde_json::{Value, json};
 
 /// Extract both network RLP and EIP-2718 encodings from a consensus transaction
 pub fn get_rlp_encodings(consensus_tx: &alloy::consensus::TxEnvelope) -> (Vec<u8>, Vec<u8>) {
     // Get network RLP encoding
-    let network_rlp = alloy_rlp::encode(consensus_tx);
+    let network_rlp = alloy::rlp::encode(consensus_tx);
     
     // Extract EIP-2718 encoding by removing the outer RLP wrapper
     let mut network_slice = network_rlp.as_slice();
-    let header = alloy_rlp::Header::decode(&mut network_slice).unwrap();
+    let header = alloy::rlp::Header::decode(&mut network_slice).unwrap();
     let eip2718_bytes = network_slice[..header.payload_length].to_vec();
     
     (network_rlp, eip2718_bytes)

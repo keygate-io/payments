@@ -4,11 +4,15 @@ import { Trie } from "@ethereumjs/trie";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import { Buffer } from "buffer";
+import dotenv from "dotenv";
 import circuit from "./circuits/payment_verify.json" with { type: "json" };
 
+// Load environment variables
+dotenv.config();
+
 // Configuration - can be overridden by passing rpcUrl parameter
-const DEFAULT_RPC_URL =
-  "https://mainnet.infura.io/v3/ba2572c3cedd43deaa43fd9e00261c33";
+const DEFAULT_RPC_URL = 
+  process.env.RPC_URL || "https://mainnet.infura.io/v3/YOUR_INFURA_KEY_HERE";
 
 /**
  * Convert transaction to RLP-encodable format

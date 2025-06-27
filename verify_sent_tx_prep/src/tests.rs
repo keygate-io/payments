@@ -5,7 +5,10 @@ use alloy::{
 use hex;
 use std::str::FromStr;
 
-const RPC_URL: &str = "https://mainnet.infura.io/v3/ba2572c3cedd43deaa43fd9e00261c33";
+fn get_rpc_url() -> String {
+    dotenvy::var("RPC_URL")
+        .unwrap_or_else(|_| "https://mainnet.infura.io/v3/YOUR_INFURA_KEY_HERE".to_string())
+}
 
 fn get_rlp_encodings(consensus_tx: &alloy::consensus::TxEnvelope) -> (Vec<u8>, Vec<u8>) {
     // Get network RLP encoding
@@ -31,7 +34,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_eip2718_hash_verification() {
-        let provider = ProviderBuilder::new().connect(RPC_URL).await.unwrap();
+        let rpc_url = get_rpc_url();
+        let provider = ProviderBuilder::new().connect(&rpc_url).await.unwrap();
         
         // Test with a known transaction hash
         let tx_hash = B256::from_str("0x9268f692c8019779077f2bb383cf81b4ff069799db17afb12dbc4f5638f85f5f").unwrap(); // Replace with a real transaction hash

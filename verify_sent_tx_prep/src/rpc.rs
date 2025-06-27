@@ -6,11 +6,15 @@ use alloy::{
 use serde_json::{Value, json};
 use hex;
 
-const RPC_URL: &str = "https://mainnet.infura.io/v3/ba2572c3cedd43deaa43fd9e00261c33";
+fn get_rpc_url() -> String {
+    dotenvy::var("RPC_URL")
+        .unwrap_or_else(|_| "https://mainnet.infura.io/v3/YOUR_INFURA_KEY_HERE".to_string())
+}
 
 /// Connect to the RPC provider
 pub async fn connect_provider() -> Result<impl Provider, Box<dyn std::error::Error>> {
-    let provider = ProviderBuilder::new().connect(RPC_URL).await?;
+    let rpc_url = get_rpc_url();
+    let provider = ProviderBuilder::new().connect(&rpc_url).await?;
     Ok(provider)
 }
 

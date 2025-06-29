@@ -1,0 +1,25 @@
+{
+    "name": "@keygate/sdk",
+    "version": "0.1.1",
+    "description": "SDK for Keygate - tools for building on-chain payment applications",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc"
+    },
+    "keywords": [
+        "zk",
+        "ethereum",
+        "proof",
+        "sdk"
+    ],
+    "devDependencies": {
+        "typescript": "^5.2.2"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

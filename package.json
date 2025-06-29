@@ -2,6 +2,11 @@
   "name": "zk-event-pay",
   "version": "1.0.0",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "cli",
+    "sdk"
+  ],
   "dependencies": {
     "@aztec/bb.js": "latest",
     "@noir-lang/noir_js": "latest",

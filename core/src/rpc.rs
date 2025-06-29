@@ -6,26 +6,20 @@ use alloy::{
 use serde_json::{Value, json};
 use hex;
 
-fn get_rpc_url() -> String {
-    dotenvy::var("RPC_URL")
-        .unwrap_or_else(|_| "https://mainnet.infura.io/v3/YOUR_INFURA_KEY_HERE".to_string())
-}
-
 /// Connect to the RPC provider
-pub async fn connect_provider() -> Result<impl Provider, Box<dyn std::error::Error>> {
-    let rpc_url = get_rpc_url();
-    let provider = ProviderBuilder::new().connect(&rpc_url).await?;
+pub async fn connect_provider(rpc_url: &str) -> Result<impl Provider, Box<dyn std::error::Error>> {
+    let provider = ProviderBuilder::new().connect(rpc_url).await?;
     Ok(provider)
 }
 
 /// Fetch transaction details from RPC
-pub async fn fetch_transaction_details(tx_hash_input: &str) -> Result<alloy::rpc::types::Transaction, String> {
+pub async fn fetch_transaction_details(rpc_url: &str, tx_hash_input: &str) -> Result<alloy::rpc::types::Transaction, String> {
     // Parse the input into B256
     let tx_hash = B256::from_str(tx_hash_input)
-        .map_err(|_| "Invalid transaction hash format".to_string())?;
+        .map_err(|_| format!("Invalid transaction hash format. Received: {}", tx_hash_input))?;
 
     // Connect to provider
-    let provider = connect_provider().await
+    let provider = connect_provider(rpc_url).await
         .map_err(|e| format!("Failed to connect to RPC: {}", e))?;
     
     // Fetch transaction details
@@ -38,12 +32,13 @@ pub async fn fetch_transaction_details(tx_hash_input: &str) -> Result<alloy::rpc
 
 /// Full transaction processing with RPC, proof generation, and RLP encoding
 pub async fn process_full_transaction(
+    rpc_url: &str,
     tx_hash_input: &str, 
     expected_to: &str, 
     expected_value: &str, 
 ) -> Value {
     // Fetch transaction details
-    let tx = match fetch_transaction_details(tx_hash_input).await {
+    let tx = match fetch_transaction_details(rpc_url, tx_hash_input).await {
         Ok(tx) => tx,
         Err(error) => {
             return json!({
@@ -72,7 +67,7 @@ pub async fn process_full_transaction(
     // Get block number for proof and receipt
     if let Some(block_number) = tx.block_number {
         // Get transaction receipt
-        if let Ok(provider) = connect_provider().await {
+        if let Ok(provider) = connect_provider(rpc_url).await {
             let tx_hash = B256::from_str(tx_hash_input).unwrap();
             if let Ok(Some(receipt)) = provider.get_transaction_receipt(tx_hash).await {
                 result["receipt"] = json!({
@@ -83,7 +78,7 @@ pub async fn process_full_transaction(
         }
         
         // Generate proof nodes
-        match crate::proof::get_proof_nodes(block_number, &format!("0x{}", hex::encode(tx_hash_input))).await {
+        match crate::proof::get_proof_nodes(rpc_url, block_number, &format!("0x{}", hex::encode(tx_hash_input))).await {
             Ok(proof_result) => {
                 result["proof"] = proof_result;
             }
@@ -115,9 +110,9 @@ pub async fn process_full_transaction(
 }
 
 /// Fetch block by block number
-pub async fn fetch_block_by_number(block_number: u64) -> Result<alloy::rpc::types::Block, String> {
+pub async fn fetch_block_by_number(rpc_url: &str, block_number: u64) -> Result<alloy::rpc::types::Block, String> {
     // Connect to provider
-    let provider = connect_provider().await
+    let provider = connect_provider(rpc_url).await
         .map_err(|e| format!("Failed to connect to RPC: {}", e))?;
     
     // Fetch block details
